@@ -19,20 +19,18 @@ function deltaScore(res, expected) {
 /**
  * Use `i` to score a the `code`, comparing its value to the `expected` one.
  */
-function score(i, code, expected) {
+function score(data, code, expected) {
   var res;
 
-  // No i? Dead.
-  if (code.indexOf('i') < 0) {
-    return 0;
-  }
   // Comment? Dead.
   if (code.indexOf('//') > -1) {
     return 0;
   }
 
   try {
-    res = eval(code);
+    with(data) {
+      res = eval(code);
+    }
   } catch (e) {
     // Threw? Dead.
     return 0;
@@ -56,7 +54,7 @@ function score(i, code, expected) {
  * Generate a random string of length `length` using from the `chars` below.
  */
 function generate(length) {
-  var chars = '1234567890-+/*i ()';
+  var chars = '1234567890-+/*ij ()';
   var result = '';
   while (length--) {
     result += chars[~~(Math.random() * chars.length)]
@@ -73,10 +71,14 @@ function rank(generation, targetfn) {
     // Run 10 tests and average them
     var tests = 10;
     var total = 0;
-    var i = tests;
-    while (i--) {
-      var target = ~~(Math.random() * 100);
-      total += score(target, code, targetfn(target));
+    var a = tests;
+    while (a--) {
+      var i = ~~(Math.random() * 100);
+      var j = ~~(Math.random() * 100);
+      total += score({
+        i: i,
+        j: j
+      }, code, targetfn(i, j));
     }
     return {
       code: code,
@@ -102,6 +104,14 @@ function breed(a, b) {
   return code;
 }
 
+/**
+ * =============================================================================
+ * =============================================================================
+ */
+
+// Set up the target
+var targetfn = new Function('i', 'j', 'return ' + process.argv[2])
+
 // Don't go forever
 var MAX_GENERATIONS = 10000;
 var generation = [];
@@ -120,9 +130,6 @@ var ranked = rank(generation, targetfn);
 var best = ranked[0];
 run();
 
-function targetfn(i) {
-    return (i + 2) * 3;
-}
 
 /**
  * Run the simulation!

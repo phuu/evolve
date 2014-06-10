@@ -4,8 +4,11 @@ A little experiment in evolving code to solve a simple maths problem: given a *t
 
 To run:
 
-```js
-node evolve.js
+```bash
+# argument is the body of the target function.
+# it can use two random variables, i and j.
+$ node evolve.js "i + 2"
+$ node evolve.js "i + j"
 ```
 
 ## License

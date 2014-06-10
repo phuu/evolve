@@ -3,30 +3,30 @@ console.log(Date.now());
 
 Number.prototype.fws = function(length) {
     var str = ''+this;
-    while (str.length < length)
-        str = str + ' ';
+    while (str.length < length) str = str + ' ';
     return str.slice(0, length);
 }
 
-// CODE
-
-var weight = {
-  eqeq: 0.4,
-  i: 0.1,
-  // len: 0.15,
-  dist: 0.5
-};
-
-function dist(res, expected) {
+/**
+ * Calculate a score according to the absolute delta from `res` to `expected`.
+ *   delta = 0, deltaScore = 1
+ *   as delta -> infinity, deltaScore -> 0
+ */
+function deltaScore(res, expected) {
   return 1 / (1 + Math.abs(res - expected));
 }
 
+/**
+ * Use `i` to score a the `code`, comparing its value to the `expected` one.
+ */
 function score(i, code, expected) {
   var res;
 
+  // No i? Dead.
   if (code.indexOf('i') < 0) {
     return 0;
   }
+  // Comment? Dead.
   if (code.indexOf('//') > -1) {
     return 0;
   }
@@ -34,40 +34,48 @@ function score(i, code, expected) {
   try {
     res = eval(code);
   } catch (e) {
+    // Threw? Dead.
     return 0;
   }
 
+  // NaN? Dead.
   if (isNaN(res)) {
     return 0;
   }
 
-  if (res === expected) {
-    return 1;
+  // Wrong type? Dead.
+  if (typeof res !== typeof expected) {
+    return 0;
   }
 
-  return dist(res, expected);
+  // Produce a score based on the delta from result to expected
+  return deltaScore(res, expected);
 }
 
-function generate(max) {
+/**
+ * Generate a random string of length `length` using from the `chars` below.
+ */
+function generate(length) {
   var chars = '1234567890-+/*i ()';
-  var length = max;
   var result = '';
-  var i = 0;
-  while (i < length) {
+  while (length--) {
     result += chars[~~(Math.random() * chars.length)]
-    i++;
   }
   return result;
 }
 
+/**
+ * Given a `generation` (array of code strings) and a `targetfn` function, rank how well the code
+ * does compared to the expected value that the target produces using the `score` function.
+ */
 function rank(generation, targetfn) {
   return generation.map(function (code, i) {
+    // Run 10 tests and average them
     var tests = 10;
     var total = 0;
-    var target;
     var i = tests;
     while (i--) {
-      target = ~~(Math.random() * 100);
+      var target = ~~(Math.random() * 100);
       total += score(target, code, targetfn(target));
     }
     return {
@@ -79,45 +87,49 @@ function rank(generation, targetfn) {
   });
 }
 
+/**
+ * Breed two strings to produce a child, by randomly swapping or mutating characters. There's a 50%
+ * chance of mutation.
+ */
 function breed(a, b) {
   var code = a;
   var swaps = ~~(Math.random() * a.length) + 1;
   while (swaps--) {
     var i = ~~(Math.random() * a.length);
-    var ch = (Math.random() > 0.5 ? generate(1) : b.slice(i, i + 1));
+    var ch = (Math.random() > 0.4 ? generate(1) : b.slice(i, i + 1));
     code = code.slice(0, i) + ch + code.slice(i + 1);
   }
   return code;
 }
 
-// UTILS
-
-// assert(true === false, 'True is false', { some: ['optional', 'data'] })
-var assert = (function (calls) {
-  return function assert(passed, msg, data) {
-    console[passed? 'log' : 'error'](++calls, msg, data);
-  };
-}(0));
-
-// Generates an assertion
-function test(code, expected, expectedScore) {
-  var res = score(expected / 2, code, expected);
-  return assert(
-    res === expectedScore,
-    code + " = " + expected + "? => " + expectedScore,
-    res
-  );
+// Don't go forever
+var MAX_GENERATIONS = 10000;
+var generation = [];
+var generationSize = 500;
+var i = generationSize;
+// Generate an initial, totally random generation
+while (i--) {
+   generation.push(generate(7));
 }
 
-// TESTS
+var averageScore = 0;
+var generations = 1;
+
+// Do the first ranking
+var ranked = rank(generation, targetfn);
+var best = ranked[0];
+run();
 
 function targetfn(i) {
     return (i + 2) * 3;
 }
 
+/**
+ * Run the simulation!
+ */
 function run() {
   generation = [];
-  var i = generationSize;
+  // Choose the mother & father of the next generation (highest scoring and not equal)
   var mother = ranked[0].code;
   var fi = 1;
   var father = ranked[fi].code;
@@ -125,36 +137,30 @@ function run() {
     fi += 1;
     father = ranked[fi].code;
   }
+  // Now generate a generation by breeding many times
+  var i = generationSize;
   while (i--) {
     generation.push(breed(mother, father));
   }
+  // Rank the resulting generation
   ranked = rank(generation, targetfn);
+  // And pick out the best score
   best = ranked[0];
+  // Nasty, not really average
   averageScore = (averageScore + best.score) / 2;
 
-  console.log(generations.fws(20), best.code, best.score.fws(10), averageScore.fws(10));
+  console.log(
+    generations.fws(10),
+    best.code,
+    '->', best.score.fws(10),
+    '      ',
+    'AVG', averageScore.fws(10)
+  );
 
   generations++;
 
+  // Keep going till we have the perfect score
   if (generations < MAX_GENERATIONS && best.score < 1) {
     setTimeout(run, 20);
   }
 }
-
-var MAX_GENERATIONS = 10000;
-var generation = [];
-var generationSize = 100;
-var i = generationSize;
-while (i--) {
-   generation.push(generate(7));
-}
-
-var averageScore = 0;
-var generations = 1;
-var ranked = rank(generation, targetfn);
-var best = ranked[0];
-run();
-
-
-// test('1+1', 2, 1)
-// test('""+2', 2, 0.3)

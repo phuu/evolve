@@ -54,7 +54,7 @@ function score(data, code, expected) {
  * Generate a random string of length `length` using from the `chars` below.
  */
 function generate(length) {
-  var chars = '1234567890-+/*ij ()';
+  var chars = '1234567890-+/*iijj ()';
   var result = '';
   while (length--) {
     result += chars[~~(Math.random() * chars.length)]
@@ -73,8 +73,8 @@ function rank(generation, targetfn) {
     var total = 0;
     var a = tests;
     while (a--) {
-      var i = ~~(Math.random() * 100);
-      var j = ~~(Math.random() * 100);
+      var i = ~~(Math.random() * 1000);
+      var j = ~~(Math.random() * 1000);
       total += score({
         i: i,
         j: j
@@ -119,7 +119,7 @@ var generationSize = 500;
 var i = generationSize;
 // Generate an initial, totally random generation
 while (i--) {
-   generation.push(generate(7));
+   generation.push(generate(process.argv[2].replace(/\s+/g, '').length));
 }
 
 var averageScore = 0;
@@ -166,7 +166,6 @@ function run() {
 
   generations++;
 
-  // Keep going till we have the perfect score
   if (generations < MAX_GENERATIONS && best.score < 1) {
     setTimeout(run, 20);
   }

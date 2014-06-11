@@ -98,7 +98,7 @@ function breed(a, b) {
   var swaps = ~~(Math.random() * a.length) + 1;
   while (swaps--) {
     var i = ~~(Math.random() * a.length);
-    var ch = (Math.random() > 0.4 ? generate(1) : b.slice(i, i + 1));
+    var ch = (Math.random() > 0.5 ? generate(1) : b.slice(i, i + 1));
     code = code.slice(0, i) + ch + code.slice(i + 1);
   }
   return code;
@@ -115,11 +115,11 @@ var targetfn = new Function('i', 'j', 'return ' + process.argv[2])
 // Don't go forever
 var MAX_GENERATIONS = 10000;
 var generation = [];
-var generationSize = 500;
+var generationSize = 100;
 var i = generationSize;
 // Generate an initial, totally random generation
 while (i--) {
-   generation.push(generate(process.argv[2].replace(/\s+/g, '').length));
+   generation.push(generate(process.argv[2].length));
 }
 
 var averageScore = 0;
